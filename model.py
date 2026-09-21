@@ -248,8 +248,54 @@ def extrapolation_report(X, y, ages: list) -> dict:
     report["poly4_range"] = round(float(max(poly4_preds) - min(poly4_preds)), 1)
     return report
 
-# Step 8 - smoothing_spline (not yet solved)
-# TODO: implement
+# Step 8 - smoothing_spline
+import numpy as np
+from sklearn.linear_model import Ridge
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import SplineTransformer
+
+
+def smooth_model(alpha: float, n_knots: int = 20):
+    return make_pipeline(
+        SplineTransformer(
+            n_knots=n_knots,
+            degree=3,
+            knots="quantile",
+            include_bias=False,
+        ),
+        Ridge(alpha=alpha),
+    )
+
+
+def effective_df(model, X) -> float:
+    transformer = model.named_steps["splinetransformer"]
+    ridge = model.named_steps["ridge"]
+
+    # Transform X to obtain basis B and center columns
+    B = transformer.transform(X)
+    B_centered = B - np.mean(B, axis=0)
+
+    # Compute B^T B
+    BTB = B_centered.T @ B_centered
+    p = BTB.shape[0]
+    alpha = ridge.alpha
+
+    # (B^T B + alpha * I)^-1 @ B^T B
+    # Solved directly via solve for numerical stability
+    mat = np.linalg.solve(BTB + alpha * np.eye(p), BTB)
+    df = 1.0 + float(np.trace(mat))
+    return round(df, 2)
+
+
+def smooth_curve(X, y, alphas, cv):
+    return cv_curve(smooth_model, X, y, alphas, cv)
+
+
+def choose_alpha(X, y, alphas, cv) -> tuple[float, float]:
+    means, ses = smooth_curve(X, y, alphas, cv)
+    alpha_min = alphas[int(np.argmin(means))]
+    alpha_1se = one_se_rule(alphas, means, ses, prefer="larger")
+    return alpha_min, alpha_1se
 
 # Step 9 - local_smoother (not yet solved)
 # TODO: implement
