@@ -473,8 +473,57 @@ def logistic_gam_auc(X: pd.DataFrame, target: pd.Series, cv) -> float:
     scores = cross_val_score(model, X, target, cv=cv, scoring="roc_auc")
     return round(float(np.mean(scores)), 3)
 
-# Step 13 - fit_age_models (not yet solved)
-# TODO: implement
+# Step 13 - fit_age_models
+import numpy as np
+import pandas as pd
+
+
+def fit_age_models(X, y, cv) -> dict:
+    models = {}
+
+    # 1. Linear model: degree 1
+    lin_model = poly_model(1).fit(X, y)
+    models["linear"] = (lin_model, 1)
+
+    # 2. Polynomial model: ANOVA degree over [1, 2, 3, 4, 5, 6]
+    poly_degrees = [1, 2, 3, 4, 5, 6]
+    _, poly_setting = choose_degree(X, y, poly_degrees, cv)
+    fitted_poly = poly_model(poly_setting).fit(X, y)
+    models["poly"] = (fitted_poly, poly_setting)
+
+    # 3. Step model: 1-SE bins over [2, 4, 8, 16]
+    step_bins = [2, 4, 8, 16]
+    _, step_setting = choose_bins(X, y, step_bins, cv)
+    fitted_step = step_model(step_setting).fit(X, y)
+    models["step"] = (fitted_step, step_setting)
+
+    # 4. Spline model: 1-SE knots over [3, 4, 5, 6, 8, 12]
+    spline_knots = [3, 4, 5, 6, 8, 12]
+    _, spline_setting = choose_knots(X, y, spline_knots, cv)
+    fitted_spline = spline_model(spline_setting).fit(X, y)
+    models["spline"] = (fitted_spline, spline_setting)
+
+    # 5. Smoothing spline model: 1-SE alpha over [0.001, 0.1, 1.0, 10.0, 100.0, 1000.0]
+    smooth_alphas = [0.001, 0.1, 1.0, 10.0, 100.0, 1000.0]
+    _, smooth_setting = choose_alpha(X, y, smooth_alphas, cv)
+    fitted_smooth = smooth_model(smooth_setting, n_knots=20).fit(X, y)
+    models["smooth"] = (fitted_smooth, smooth_setting)
+
+    # 6. Local regression (KNN): 1-SE span over [0.02, 0.05, 0.1, 0.2, 0.4, 0.7]
+    local_spans = [0.02, 0.05, 0.1, 0.2, 0.4, 0.7]
+    _, local_setting = choose_span(X, y, local_spans, cv)
+    fitted_local = local_model(local_setting, len(X)).fit(X, y)
+    models["local"] = (fitted_local, local_setting)
+
+    return models
+
+
+def curves_table(models: dict, grid: pd.DataFrame) -> pd.DataFrame:
+    data = {}
+    for name, (model, _) in models.items():
+        data[name] = curve_on_grid(model, grid)
+
+    return pd.DataFrame(data, index=grid["age"])
 
 # Step 14 - test_comparison (not yet solved)
 # TODO: implement
