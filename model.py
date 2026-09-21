@@ -380,8 +380,56 @@ def gam_feature_count(model, X) -> int:
     transformed = preprocessor.transform(X[:5])
     return transformed.shape[1]
 
-# Step 11 - partial_effects (not yet solved)
-# TODO: implement
+# Step 11 - partial_effects
+import numpy as np
+import pandas as pd
+
+
+def partial_effect(model, X: pd.DataFrame, column: str, grid_values) -> np.ndarray:
+    n = len(grid_values)
+    ref_row = {}
+    for col in X.columns:
+        if col == column:
+            continue
+        if pd.api.types.is_numeric_dtype(X[col]):
+            ref_row[col] = X[col].median()
+        else:
+            ref_row[col] = X[col].mode().iloc[0]
+
+    df_eval = pd.DataFrame([ref_row] * n)
+    df_eval[column] = list(grid_values)
+
+    preds = np.asarray(model.predict(df_eval)).ravel()
+    centered_preds = preds - np.mean(preds)
+    return np.round(centered_preds, 2)
+
+
+def education_effect(model, X: pd.DataFrame) -> dict:
+    levels = sorted(X["education"].unique())
+    centered_effects = partial_effect(model, X, "education", levels)
+    return {level: eff for level, eff in zip(levels, centered_effects)}
+
+
+def gam_summary(model, X: pd.DataFrame) -> dict:
+    # 1. Age partial effect over age_grid()['age']
+    age_vals = age_grid()["age"]
+    age_effs = partial_effect(model, X, "age", age_vals)
+    age_range = round(float(np.ptp(age_effs)), 1)
+
+    # 2. Year partial effect over integer years 2003..2009
+    year_vals = list(range(2003, 2010))
+    year_effs = partial_effect(model, X, "year", year_vals)
+    year_range = round(float(np.ptp(year_effs)), 1)
+
+    # 3. Education partial effect over levels
+    edu_effs = list(education_effect(model, X).values())
+    education_range = round(float(np.ptp(edu_effs)), 1)
+
+    return {
+        "age_range": age_range,
+        "year_range": year_range,
+        "education_range": education_range,
+    }
 
 # Step 12 - logistic_gam (not yet solved)
 # TODO: implement

@@ -20,7 +20,7 @@ python scaffold.py
 - [x] **8.** smoothing_spline
 - [x] **9.** local_smoother
 - [x] **10.** gam_pipeline
-- [ ] **11.** partial_effects
+- [x] **11.** partial_effects
 - [ ] **12.** logistic_gam
 - [ ] **13.** fit_age_models
 - [ ] **14.** test_comparison
