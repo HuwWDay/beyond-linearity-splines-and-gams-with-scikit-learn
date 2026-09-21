@@ -525,6 +525,40 @@ def curves_table(models: dict, grid: pd.DataFrame) -> pd.DataFrame:
 
     return pd.DataFrame(data, index=grid["age"])
 
-# Step 14 - test_comparison (not yet solved)
-# TODO: implement
+# Step 14 - test_comparison
+import numpy as np
+from sklearn.metrics import mean_squared_error
+
+
+def test_rmse(models: dict, X_test, y_test) -> dict:
+    results = {}
+    for name, item in models.items():
+        # Handles either a model object directly or a (model, setting) tuple
+        model = item[0] if isinstance(item, tuple) else item
+        preds = model.predict(X_test)
+        rmse = float(np.sqrt(mean_squared_error(y_test, preds)))
+        results[name] = round(rmse, 2)
+    return results
+
+
+def gam_test_rmse(train, test) -> float:
+    X_train, y_train = gam_xy(train)
+    X_test, y_test = gam_xy(test)
+
+    model = gam_model().fit(X_train, y_train)
+    preds = model.predict(X_test)
+    rmse = float(np.sqrt(mean_squared_error(y_test, preds)))
+    return round(rmse, 2)
+
+
+def comparison_lines(rmse_by_model: dict, gam_rmse: float) -> list[str]:
+    # Sort items by RMSE (first element of the value tuple) ascending
+    sorted_models = sorted(rmse_by_model.items(), key=lambda item: item[1][0])
+
+    lines = [
+        f"{name:8s} rmse={rmse:6.2f} setting={setting}"
+        for name, (rmse, setting) in sorted_models
+    ]
+    lines.append(f"{'gam':8s} rmse={gam_rmse:6.2f} setting=age+year+education")
+    return lines
 
