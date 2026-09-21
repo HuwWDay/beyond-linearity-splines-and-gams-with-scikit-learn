@@ -18,8 +18,8 @@ python scaffold.py
 - [x] **6.** spline_regression
 - [x] **7.** extrapolation
 - [x] **8.** smoothing_spline
-- [ ] **9.** local_smoother
-- [ ] **10.** gam_pipeline
+- [x] **9.** local_smoother
+- [x] **10.** gam_pipeline
 - [ ] **11.** partial_effects
 - [ ] **12.** logistic_gam
 - [ ] **13.** fit_age_models

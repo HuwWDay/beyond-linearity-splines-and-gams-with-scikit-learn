@@ -297,11 +297,88 @@ def choose_alpha(X, y, alphas, cv) -> tuple[float, float]:
     alpha_1se = one_se_rule(alphas, means, ses, prefer="larger")
     return alpha_min, alpha_1se
 
-# Step 9 - local_smoother (not yet solved)
-# TODO: implement
+# Step 9 - local_smoother
+import numpy as np
+from sklearn.neighbors import KNeighborsRegressor
 
-# Step 10 - gam_pipeline (not yet solved)
-# TODO: implement
+
+def local_model(span: float, n_train: int) -> KNeighborsRegressor:
+    n_neighbors = max(2, int(round(span * n_train)))
+    return KNeighborsRegressor(n_neighbors=n_neighbors)
+
+
+def local_curve(X, y, spans, cv):
+    n_train = len(X)
+    return cv_curve(lambda span: local_model(span, n_train), X, y, spans, cv)
+
+
+def choose_span(X, y, spans, cv) -> tuple[float, float]:
+    means, ses = local_curve(X, y, spans, cv)
+    span_min = spans[int(np.argmin(means))]
+    span_1se = one_se_rule(spans, means, ses, prefer="larger")
+    return span_min, span_1se
+
+
+def roughness(curve) -> float:
+    # Second finite difference: f[i+2] - 2*f[i+1] + f[i]
+    d2 = np.diff(curve, n=2)
+    return round(float(np.mean(np.abs(d2))), 3)
+
+# Step 10 - gam_pipeline
+import pandas as pd
+from sklearn.compose import ColumnTransformer
+from sklearn.linear_model import LinearRegression
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import OneHotEncoder, SplineTransformer
+
+
+def gam_preprocessor(age_knots: int = 5, year_knots: int = 4) -> ColumnTransformer:
+    return ColumnTransformer(
+        transformers=[
+            (
+                "age",
+                SplineTransformer(
+                    n_knots=age_knots,
+                    degree=3,
+                    knots="quantile",
+                    include_bias=False,
+                ),
+                ["age"],
+            ),
+            (
+                "year",
+                SplineTransformer(
+                    n_knots=year_knots,
+                    degree=3,
+                    knots="uniform",
+                    include_bias=False,
+                ),
+                ["year"],
+            ),
+            (
+                "education",
+                OneHotEncoder(drop="first"),
+                ["education"],
+            ),
+        ]
+    )
+
+
+def gam_model(age_knots: int = 5, year_knots: int = 4):
+    return make_pipeline(
+        gam_preprocessor(age_knots=age_knots, year_knots=year_knots),
+        LinearRegression(),
+    )
+
+
+def gam_xy(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
+    return df[["age", "year", "education"]], df["wage"]
+
+
+def gam_feature_count(model, X) -> int:
+    preprocessor = model.named_steps["columntransformer"]
+    transformed = preprocessor.transform(X[:5])
+    return transformed.shape[1]
 
 # Step 11 - partial_effects (not yet solved)
 # TODO: implement
