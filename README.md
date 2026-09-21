@@ -16,7 +16,7 @@ python scaffold.py
 - [x] **4.** polynomial_regression
 - [x] **5.** step_functions
 - [x] **6.** spline_regression
-- [ ] **7.** extrapolation
+- [x] **7.** extrapolation
 - [ ] **8.** smoothing_spline
 - [ ] **9.** local_smoother
 - [ ] **10.** gam_pipeline

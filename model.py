@@ -222,8 +222,31 @@ def choose_knots(X, y, knot_counts, cv) -> tuple[int, int]:
     k_1se = one_se_rule(knot_counts, means, ses, prefer="smaller")
     return k_min, k_1se
 
-# Step 7 - extrapolation (not yet solved)
-# TODO: implement
+# Step 7 - extrapolation
+import numpy as np
+import pandas as pd
+
+
+def beyond_data(models: dict, ages: list) -> dict:
+    grid = pd.DataFrame({"age": ages})
+    predictions = {}
+    for name, model in models.items():
+        preds = np.asarray(model.predict(grid)).ravel()
+        predictions[name] = [round(float(p), 1) for p in preds]
+    return predictions
+
+
+def extrapolation_report(X, y, ages: list) -> dict:
+    models = {
+        "poly4": poly_model(4).fit(X, y),
+        "spline_const": spline_model(5, extrapolation="constant").fit(X, y),
+        "spline_linear": spline_model(5, extrapolation="linear").fit(X, y),
+    }
+
+    report = beyond_data(models, ages)
+    poly4_preds = report["poly4"]
+    report["poly4_range"] = round(float(max(poly4_preds) - min(poly4_preds)), 1)
+    return report
 
 # Step 8 - smoothing_spline (not yet solved)
 # TODO: implement
